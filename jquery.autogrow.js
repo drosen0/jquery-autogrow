@@ -1,5 +1,5 @@
 /*
- * Auto Expanding Text Area (1.2.2)
+ * Auto Expanding Text Area (1.2.3)
  * by Chrys Bader (www.chrysbader.com)
  * chrysb@gmail.com
  *
@@ -11,169 +11,122 @@
  * Licensed under the GPL (GPL-LICENSE.txt) license.
  *
  *
- * NOTE: This script requires jQuery to work.  Download jQuery at www.jquery.com
- *
  */
 
-(function(jQuery) {
+(function (jQuery) {
+    jQuery.fn.autogrow = function (options) {
+        return this.each(function () {
+            new jQuery.autogrow(this, options);
+        });
+    };
 
-	var self = null;
+    jQuery.autogrow = function (element, options) {
+        this.options = options || {};
+        this.dummy = null;
+        this.interval = null;
+        this.minHeight = parseInt(this.options.minHeight || jQuery(element).css('min-height'), 10);
+        this.maxHeight = parseInt(this.options.maxHeight || jQuery(element).css('max-height'), 10);
+        this.lineHeight = parseInt(this.options.lineHeight || jQuery(element).css('line-height'), 10);
 
-	jQuery.fn.autogrow = function(o)
-	{
-		return this.each(function() {
-			new jQuery.autogrow(this, o);
-		});
-	};
+        if (isNaN(this.lineHeight)) {
+            throw new TypeError("The line-height must be a number (either the option or the css property on the element)");
+        }
 
+        this.expandCallback = this.options.expandCallback;
+        this.resizeCallback = this.options.resizeCallback || function () {};
+        this.textarea = jQuery(element);
+        this.evenNumberedHeight = this.options.evenNumberedHeight || false;
 
-    /**
-     * The autogrow object.
-     *
-     * @constructor
-     * @name jQuery.autogrow
-     * @param Object e The textarea to create the autogrow for.
-     * @param Hash o A set of key/value pairs to set as configuration properties.
-     * @cat Plugins/autogrow
-     */
+        this.init();
+    };
 
-	jQuery.autogrow = function (e, o)
-	{
-		this.options              = o || {};
-		this.dummy                = null;
-		this.interval             = null;
-		this.line_height          = this.options.lineHeight || parseInt(jQuery(e).css('line-height'));
+    jQuery.autogrow.fn = jQuery.autogrow.prototype = {
+        autogrow: '1.2.3',
 
-		if (isNaN(this.line_height)) {
-			// "normal" could also be a property, which will fail later
-			throw "The line-height must be a number (either the option or the css property on the element)";
-		}
+        init: function () {
+            var self = this;
+            this.textarea.css({ overflow: 'hidden', display: 'block' });
+            this.textarea.bind('focus', function () {
+                self.startExpand();
+            });
+            this.textarea.bind('blur', function () {
+                self.stopExpand();
+            });
+            this.checkExpand();
+        },
 
-		this.min_height           = parseInt(this.options.minHeight || jQuery(e).css('min-height'));
-		this.max_height           = this.options.maxHeight || parseInt(jQuery(e).css('max-height'));;
-		this.expand_callback      = this.options.expandCallback;
-		this.resize_callback      = this.options.resizeCallback || function() {};
-		this.textarea             = jQuery(e);
-		this.even_numbered_height = this.options.evenNumberedHeight || false;
+        startExpand: function () {
+            var self = this;
+            this.interval = window.setInterval(function () {
+                self.checkExpand();
+            }, 400);
+        },
 
-		if(this.line_height == NaN)
-		  this.line_height = 0;
+        stopExpand: function () {
+            clearInterval(this.interval);
+        },
 
-		// Only one textarea activated at a time, the one being used
-		this.init();
-	};
+        checkExpand: function () {
+            if (this.dummy === null) {
+                this.dummy = jQuery('<div></div>');
+                this.dummy.css({
+                    'font-size'  : this.textarea.css('font-size'),
+                    'font-family': this.textarea.css('font-family'),
+                    'width'      : this.textarea.css('width'),
+                    'padding'    : this.textarea.css('padding'),
+                    'line-height': this.lineHeight + 'px',
+                    'overflow-x' : 'hidden',
+                    'position'   : 'absolute',
+                    'top'        : 0,
+                    'left'       : -9999
+                }).appendTo('body');
+            }
 
-	jQuery.autogrow.fn = jQuery.autogrow.prototype = {
-		autogrow: '1.2.2'
-	};
+            var html = this.textarea.val();
 
- 	jQuery.autogrow.fn.extend = jQuery.autogrow.extend = jQuery.extend;
+            // Strip HTML tags
+            html = html.replace(/(<|>)/g, '');
 
-	jQuery.autogrow.fn.extend({
-		init: function() {
-			var self = this;
-			this.textarea.css({overflow: 'hidden', display: 'block'});
-			this.textarea.bind(
-				'focus', 
-				function() {
-					self.startExpand() 
-				}
-			).bind(
-				'blur',
-				function() {
-					self.stopExpand() 
-				}
-			);
-			this.checkExpand();
-		},
+            // IE is different, as per usual
+            if (jQuery.browser.msie) {
+                html = html.replace(/\n/g, '<BR>new');
+            } else {
+                html = html.replace(/\n/g, '<br>new');
+            }
 
-		startExpand: function() {
-			var self = this;
-			this.interval = window.setInterval(
-				function() {
-					self.checkExpand()
-				},
-				400
-			);
-		},
+            // add some padding at end to open a new line a little early
+            // and ensure it never collapses to 0
+            html = html + "mmm";
 
-		stopExpand: function() {
-			clearInterval(this.interval);
-		},
+            if (this.dummy.html() !== html) {
+                this.dummy.html(html);
 
-		checkExpand: function() {
-			if (this.dummy == null)
-			{
-				this.dummy = jQuery('<div></div>');
-				this.dummy.css({
-					'font-size'  : this.textarea.css('font-size'),
-					'font-family': this.textarea.css('font-family'),
-					'width'      : this.textarea.css('width'),
-					'padding'    : this.textarea.css('padding'),
-					'line-height': this.line_height + 'px',
-					'overflow-x' : 'hidden',
-					'position'   : 'absolute',
-					'top'        : 0,
-					'left'       : -9999
-					}).appendTo('body');
-			}
+                if (this.maxHeight > 0 && (this.dummy.height() > this.maxHeight)) {
+                    this.textarea.css('overflow-y', 'auto');
+                } else {
+                    this.textarea.css('overflow-y', 'hidden');
+                    if (this.dummy.height() !== this.textarea.height()) {
+                        var newHeight = this.dummy.height();
+                        if (newHeight < this.minHeight) {
+                            newHeight = this.minHeight;
+                        }
 
-			// Strip HTML tags
-			var html = this.textarea.val().replace(/(<|>)/g, '');
+                        if (this.evenNumberedHeight) {
+                            newHeight += newHeight % 2;
+                        }
+                        this.textarea.css({ height: newHeight + 'px' });
+                        this.resizeCallback(newHeight);
+                    }
+                }
+            }
 
-			// IE is different, as per usual
-			if (jQuery.browser.msie)
-			{
-				html = html.replace(/\n/g, '<BR>new');
-			}
-			else
-			{
-				html = html.replace(/\n/g, '<br>new');
-			}
+            if (this.expandCallback) {
+                var self = this;
+                window.setTimeout(function () {
+                    self.expandCallback();
+                }, 500);
+            }
+        }
 
-			if (this.dummy.html() != html)
-			{
-				this.dummy.html(html);
-
-				if  (   this.max_height > 0
-						&& (this.dummy.height() + this.line_height > this.max_height)
-					)
-				{
-					this.textarea.css('overflow-y', 'auto');
-				}
-				else
-				{
-					this.textarea.css('overflow-y', 'hidden');
-					if  (   this.textarea.height() < this.dummy.height() + this.line_height
-							|| (this.dummy.height() < this.textarea.height())
-						)
-					{
-						var newHeight = (this.dummy.height() + this.line_height);
-						if (newHeight < this.min_height) 
-						{
-							newHeight = this.min_height;
-						}
-
-						if (this.even_numbered_height) {
-							newHeight += newHeight % 2;
-						}
-						this.textarea.animate({height: newHeight + 'px'}, 100);
-						this.resize_callback(newHeight);
-					}
-				}
-			}
-
-			if (this.expand_callback) 
-			{
-				var self = this;
-				window.setTimeout(
-					function() {
-						self.expand_callback()
-					},
-					500
-				);
-			}
-		}
-
-	 });
-})(jQuery);
+    };
+}(jQuery));
