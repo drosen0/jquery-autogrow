@@ -70,15 +70,18 @@
             if (this.dummy === null) {
                 this.dummy = jQuery('<div></div>');
                 this.dummy.css({
-                    'font-size'  : this.textarea.css('font-size'),
-                    'font-family': this.textarea.css('font-family'),
-                    'width'      : this.textarea.css('width'),
-                    'padding'    : this.textarea.css('padding'),
-                    'line-height': this.lineHeight + 'px',
-                    'overflow-x' : 'hidden',
-                    'position'   : 'absolute',
-                    'top'        : 0,
-                    'left'       : -9999
+                    'font-size'      : this.textarea.css('font-size'),
+                    'font-family'    : this.textarea.css('font-family'),
+                    'width'          : this.textarea.css('width'),
+                    'padding-top'    : this.textarea.css('padding-top'),
+                    'padding-right'  : this.textarea.css('padding-right'),
+                    'padding-bottom' : this.textarea.css('padding-bottom'),
+                    'padding-left'   : this.textarea.css('padding-left'),
+                    'line-height'    : this.lineHeight + 'px',
+                    'overflow-x'     : 'hidden',
+                    'position'       : 'absolute',
+                    'top'            : 0,
+                    'left'           : -9999
                 }).appendTo('body');
             }
 
