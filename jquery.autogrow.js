@@ -35,7 +35,6 @@
         this.expandCallback = this.options.expandCallback;
         this.resizeCallback = this.options.resizeCallback || function () {};
         this.textarea = jQuery(element);
-        this.evenNumberedHeight = this.options.evenNumberedHeight || false;
 
         this.init();
     };
@@ -51,6 +50,11 @@
             });
             this.textarea.bind('blur', function () {
                 self.stopExpand();
+            });
+            // add a line immediately when user presses Enter
+            this.textarea.bind('keypress', function (event) {
+                if (event.which === 13)
+                    self.setHeight(1);
             });
             this.checkExpand();
         },
@@ -72,7 +76,6 @@
                 this.dummy.css({
                     'font-size'      : this.textarea.css('font-size'),
                     'font-family'    : this.textarea.css('font-family'),
-                    'width'          : this.textarea.css('width'),
                     'padding-top'    : this.textarea.css('padding-top'),
                     'padding-right'  : this.textarea.css('padding-right'),
                     'padding-bottom' : this.textarea.css('padding-bottom'),
@@ -99,28 +102,15 @@
 
             // add some padding at end to open a new line a little early
             // and ensure it never collapses to 0
-            html = html + "mmm";
+            html = html + " mmm";
 
             if (this.dummy.html() !== html) {
+                // in case width of textarea changes, reset width of dummy div
+                this.dummy.width(this.textarea.width());
+
                 this.dummy.html(html);
 
-                if (this.maxHeight > 0 && (this.dummy.height() > this.maxHeight)) {
-                    this.textarea.css('overflow-y', 'auto');
-                } else {
-                    this.textarea.css('overflow-y', 'hidden');
-                    if (this.dummy.height() !== this.textarea.height()) {
-                        var newHeight = this.dummy.height();
-                        if (newHeight < this.minHeight) {
-                            newHeight = this.minHeight;
-                        }
-
-                        if (this.evenNumberedHeight) {
-                            newHeight += newHeight % 2;
-                        }
-                        this.textarea.css({ height: newHeight + 'px' });
-                        this.resizeCallback(newHeight);
-                    }
-                }
+                this.setHeight(0);
             }
 
             if (this.expandCallback) {
@@ -128,6 +118,26 @@
                 window.setTimeout(function () {
                     self.expandCallback();
                 }, 500);
+            }
+        },
+
+        setHeight: function (addLines) {
+            var newHeight = this.dummy.height() + addLines * this.lineHeight;
+            var oldHeight = this.textarea.height();
+
+            // don't remove a line if just removing one line
+            if (newHeight > oldHeight || newHeight + this.lineHeight < oldHeight) {
+                if (this.maxHeight > 0 && newHeight > this.maxHeight) {
+                    newHeight = this.maxHeight;
+                    this.textarea.css('overflow-y', 'auto');
+                } else {
+                    if (newHeight < this.minHeight)
+                        newHeight = this.minHeight;
+                    this.textarea.css('overflow-y', 'hidden');
+                }
+
+                this.textarea.css({ height: newHeight + 'px' });
+                this.resizeCallback(newHeight);
             }
         }
 
